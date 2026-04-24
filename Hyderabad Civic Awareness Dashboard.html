@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hyderabad Civic Awareness Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1b1f2a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text-primary: #e8eaf0;
+    --text-secondary: #7a8099;
+    --text-muted: #4a5068;
+    --accent-blue: #4a9eff;
+    --accent-teal: #2dd4bf;
+    --accent-amber: #f59e0b;
+    --accent-red: #f87171;
+    --accent-green: #4ade80;
+    --accent-purple: #a78bfa;
+    --grid: rgba(255,255,255,0.04);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-teal); box-shadow: 0 0 8px var(--accent-teal); }
+  .topbar-title { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; color: var(--text-secondary); text-transform: uppercase; }
+  .live-badge {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+    background: rgba(45,212,191,0.12); color: var(--accent-teal);
+    border: 1px solid rgba(45,212,191,0.25);
+    padding: 3px 10px; border-radius: 20px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .live-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--accent-teal); display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .topbar-right { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+  /* ── MAIN LAYOUT ── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+  /* ── HEADER ── */
+  .page-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .page-header h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; color: var(--text-primary); margin-bottom: 4px; }
+  .page-header p { font-size: 13px; color: var(--text-secondary); }
+  .header-meta { display: flex; align-items: center; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
+  .meta-tag {
+    font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+    background: var(--surface2); color: var(--text-secondary);
+    border: 1px solid var(--border2); padding: 3px 10px; border-radius: 4px;
+  }
+
+  /* ── METRIC CARDS ── */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .metric-card.red::before { background: linear-gradient(90deg, transparent, var(--accent-red), transparent); }
+  .metric-card.amber::before { background: linear-gradient(90deg, transparent, var(--accent-amber), transparent); }
+  .metric-card.teal::before { background: linear-gradient(90deg, transparent, var(--accent-teal), transparent); }
+  .metric-card.orange::before { background: linear-gradient(90deg, transparent, #fb923c, transparent); }
+  .metric-card:hover { border-color: var(--border2); }
+  .metric-label { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .metric-value { font-size: 30px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .metric-card.red .metric-value { color: var(--accent-red); }
+  .metric-card.amber .metric-value { color: var(--accent-amber); }
+  .metric-card.teal .metric-value { color: var(--accent-teal); }
+  .metric-card.orange .metric-value { color: #fb923c; }
+  .metric-status { font-size: 11px; color: var(--text-muted); }
+
+  /* ── TAB NAV ── */
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; width: fit-content; }
+  .tab-btn {
+    font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
+    padding: 7px 18px; border-radius: 7px; border: none;
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text-primary); background: var(--surface2); }
+  .tab-btn.active { background: var(--surface2); color: var(--text-primary); border: 1px solid var(--border2); }
+  .tab-btn.active.theme-red { color: var(--accent-red); border-color: rgba(248,113,113,0.3); }
+  .tab-btn.active.theme-amber { color: var(--accent-amber); border-color: rgba(245,158,11,0.3); }
+  .tab-btn.active.theme-teal { color: var(--accent-teal); border-color: rgba(45,212,191,0.3); }
+  .tab-btn.active.theme-orange { color: #fb923c; border-color: rgba(251,146,60,0.3); }
+
+  /* ── CHARTS GRID ── */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.5rem; }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px;
+  }
+  .chart-card h3 { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+  .chart-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+  .chart-legend { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+  .leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .chart-wrap { position: relative; width: 100%; height: 200px; }
+
+  /* ── INSIGHTS ── */
+  .insights-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 1.5rem;
+  }
+  .insights-heading {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .insights-heading::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .insights-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    font-size: 12px; color: var(--text-secondary);
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 5px 12px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .pill:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.2); }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    margin-top: 2.5rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .footer-text { font-size: 11px; color: var(--text-muted); }
+  .footer-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .footer-badge {
+    font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+    background: var(--surface2); color: var(--text-muted);
+    border: 1px solid var(--border); padding: 3px 9px; border-radius: 4px;
+  }
+
+  @media (max-width: 760px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .main { padding: 1rem; }
+  }
+  @media (max-width: 480px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .tab-nav { flex-wrap: wrap; width: 100%; }
+    .tab-btn { flex: 1; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <div class="logo-dot"></div>
+    <span class="topbar-title">Hyderabad Civic Awareness</span>
+    <span class="live-badge">Live Demo</span>
+  </div>
+  <div class="topbar-right">HITMS — SW — Theme D</div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1>Hyderabad Civic Awareness Dashboard</h1>
+    <p>Interactive data visualization on key civic issues — Hyderabad, Sindh, Pakistan</p>
+    <div class="header-meta">
+      <span class="meta-tag">Theme D: Data Visualization</span>
+      <span class="meta-tag">Civic &amp; Community Engagement (CCP)</span>
+      <span class="meta-tag">HITMS 2025</span>
+      <span class="meta-tag">4 Civic Issues</span>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric-card red">
+      <div class="metric-label">Air Quality Index</div>
+      <div class="metric-value">187</div>
+      <div class="metric-status">⚠ Unhealthy</div>
+    </div>
+    <div class="metric-card amber">
+      <div class="metric-label">Literacy Rate</div>
+      <div class="metric-value">58%</div>
+      <div class="metric-status">↓ Below national avg</div>
+    </div>
+    <div class="metric-card teal">
+      <div class="metric-label">Clean Water Access</div>
+      <div class="metric-value">61%</div>
+      <div class="metric-status">↑ Slowly improving</div>
+    </div>
+    <div class="metric-card orange">
+      <div class="metric-label">Waste Collection</div>
+      <div class="metric-value">43%</div>
+      <div class="metric-status">⚠ Critical level</div>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active theme-red" onclick="switchTab('pollution',this)">Air Pollution</button>
+    <button class="tab-btn" onclick="switchTab('education',this)">Education</button>
+    <button class="tab-btn" onclick="switchTab('water',this)">Water Access</button>
+    <button class="tab-btn" onclick="switchTab('waste',this)">Waste Mgmt</button>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 id="main-title">Monthly AQI Levels — Hyderabad</h3>
+      <div class="chart-sub" id="main-sub">Jan–Dec 2024 average readings</div>
+      <div class="chart-legend" id="main-legend">
+        <div class="leg-item"><span class="leg-dot" style="background:#f87171"></span>AQI Level</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#4ade80;opacity:0.6"></span>Safe limit (100)</div>
+      </div>
+      <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Area-wise Comparison</h3>
+      <div class="chart-sub" id="area-sub">Pollution index by neighborhood</div>
+      <div class="chart-legend">
+        <div class="leg-item"><span class="leg-dot" style="background:#4a9eff"></span>2022</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#f87171"></span>2024</div>
+      </div>
+      <div class="chart-wrap"><canvas id="areaChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insights-box">
+    <div class="insights-heading" id="insights-heading">Key Findings</div>
+    <div class="insights-pills" id="insights-pills"></div>
+  </div>
+
+  <footer class="page-footer">
+    <div class="footer-text">Data sources: PDMA Sindh · HDA · WHO Pakistan · UNICEF Pakistan · 2024</div>
+    <div class="footer-badges">
+      <span class="footer-badge">Chart.js 4.4</span>
+      <span class="footer-badge">Open Source</span>
+      <span class="footer-badge">HITMS 2025</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+const DATASETS = {
+  pollution: {
+    mainTitle: 'Monthly AQI Levels — Hyderabad',
+    mainSub: 'Jan–Dec 2024 average readings',
+    mainLabels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    mainData: [145,130,155,180,210,195,170,160,175,200,230,220],
+    mainType: 'line',
+    mainColor: '#f87171',
+    showSafe: true,
+    areaLabels: ['Latifabad','Qasimabad','Auto Bahn','Unit 9','Hussainabad','Paretabad'],
+    area2022: [120,140,100,160,130,115],
+    area2024: [165,195,145,210,180,155],
+    areaSub: 'Pollution index by neighborhood',
+    insightColor: 'rgba(248,113,113,0.15)',
+    tabClass: 'theme-red',
+    insights: ['AQI exceeds 200 during Oct–Nov peak','Qasimabad & Unit 9 most critically affected','Winter months are 30% worse than summer','Brick kilns are a major contributing factor','City-wide tree plantation drive urgently needed']
+  },
+  education: {
+    mainTitle: 'Literacy Rate Trend — Hyderabad',
+    mainSub: '2015–2024 district data',
+    mainLabels: ['2015','2016','2017','2018','2019','2020','2021','2022','2023','2024'],
+    mainData: [46,48,50,51,53,50,54,55,57,58],
+    mainType: 'line',
+    mainColor: '#f59e0b',
+    showSafe: true,
+    safeVal: 62,
+    safeLabel: 'National Avg (62%)',
+    areaLabels: ['Boys Urban','Girls Urban','Boys Rural','Girls Rural','Disabled','Adults 30+'],
+    area2022: [70,58,52,34,22,40],
+    area2024: [74,63,56,39,28,44],
+    areaSub: 'Literacy by demographic group (%)',
+    insightColor: 'rgba(245,158,11,0.15)',
+    tabClass: 'theme-amber',
+    insights: ['Girls rural literacy still only 39% in 2024','4% gap from national average persists','Dropout rate highest in Class 6–8','Only 28% disabled children enrolled in school','Adult literacy programs remain severely underfunded']
+  },
+  water: {
+    mainTitle: 'Monthly Clean Water Access — Hyderabad',
+    mainSub: 'Households with reliable water supply (%)',
+    mainLabels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    mainData: [65,63,60,55,50,58,72,75,68,62,64,66],
+    mainType: 'bar',
+    mainColor: '#2dd4bf',
+    showSafe: false,
+    areaLabels: ['Latifabad','Qasimabad','Rural North','Rural South','Old City','New Areas'],
+    area2022: [55,60,32,28,48,70],
+    area2024: [63,68,40,35,54,78],
+    areaSub: 'Clean water access by zone (%)',
+    insightColor: 'rgba(45,212,191,0.15)',
+    tabClass: 'theme-teal',
+    insights: ['Rural south has only 35% clean water access','Supply drops 25% during summer months','Water-borne diseases spike sharply in May','New filtration plant is urgently needed','Rooftop harvesting could benefit 40% of homes']
+  },
+  waste: {
+    mainTitle: 'Waste Collection Coverage — Monthly',
+    mainSub: 'Percentage of households covered in 2024',
+    mainLabels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    mainData: [45,42,48,44,40,38,43,46,44,42,41,40],
+    mainType: 'bar',
+    mainColor: '#fb923c',
+    showSafe: false,
+    areaLabels: ['Latifabad','Qasimabad','Highway','Rural','City Core','Industrial'],
+    area2022: [50,55,40,20,60,35],
+    area2024: [52,58,44,22,63,38],
+    areaSub: 'Waste collection coverage by zone (%)',
+    insightColor: 'rgba(251,146,60,0.15)',
+    tabClass: 'theme-orange',
+    insights: ['Rural areas have only 22% coverage','Industrial waste is frequently dumped illegally','City generates 650 tons/day but handles only 280','Only 3 dumping sites exist for entire district','Digital reporting app could improve efficiency by 35%']
+  }
+};
+
+const gridColor = 'rgba(255,255,255,0.06)';
+const tickColor = 'rgba(255,255,255,0.35)';
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: {
+    backgroundColor: '#1b1f2a',
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    titleColor: '#e8eaf0',
+    bodyColor: '#7a8099',
+    padding: 10
+  }},
+  scales: {
+    y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11, family: 'IBM Plex Mono' } }, border: { color: 'transparent' } },
+    x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10, family: 'IBM Plex Mono' }, maxRotation: 30 }, border: { color: 'rgba(255,255,255,0.08)' } }
+  }
+};
+
+let mainChart, areaChart;
+
+function buildMainLegend(d) {
+  const leg = document.getElementById('main-legend');
+  leg.innerHTML = `<div class="leg-item"><span class="leg-dot" style="background:${d.mainColor}"></span>${d.mainTitle.split('—')[0].trim()}</div>`;
+  if (d.showSafe) leg.innerHTML += `<div class="leg-item"><span class="leg-dot" style="background:#4ade80;opacity:0.7"></span>${d.safeLabel || 'Safe limit (100)'}</div>`;
+}
+
+function makeMainChart(d) {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const isLine = d.mainType === 'line';
+  const ds = [{
+    label: 'Value', data: d.mainData,
+    borderColor: d.mainColor, backgroundColor: d.mainColor + (isLine ? '18' : 'cc'),
+    fill: isLine, tension: 0.4, borderWidth: 2,
+    pointRadius: isLine ? 3 : 0, pointBackgroundColor: d.mainColor,
+    borderRadius: isLine ? 0 : 4
+  }];
+  if (d.showSafe) {
+    const sv = d.safeVal || 100;
+    ds.push({ label: d.safeLabel || 'Safe', data: Array(d.mainData.length).fill(sv),
+      borderColor: '#4ade8066', borderDash: [5,4], borderWidth: 1.5,
+      pointRadius: 0, fill: false });
+  }
+  return new Chart(ctx, { type: d.mainType, data: { labels: d.mainLabels, datasets: ds }, options: JSON.parse(JSON.stringify(chartDefaults)) });
+}
+
+function makeAreaChart(d) {
+  const ctx = document.getElementById('areaChart').getContext('2d');
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.areaLabels,
+      datasets: [
+        { label: '2022', data: d.area2022, backgroundColor: '#4a9eff55', borderColor: '#4a9eff', borderWidth: 1, borderRadius: 3 },
+        { label: '2024', data: d.area2024, backgroundColor: d.mainColor + '66', borderColor: d.mainColor, borderWidth: 1, borderRadius: 3 }
+      ]
+    },
+    options: JSON.parse(JSON.stringify(chartDefaults))
+  });
+}
+
+function switchTab(key, btn) {
+  const d = DATASETS[key];
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active','theme-red','theme-amber','theme-teal','theme-orange'); });
+  btn.classList.add('active', d.tabClass);
+  document.getElementById('main-title').textContent = d.mainTitle;
+  document.getElementById('main-sub').textContent = d.mainSub;
+  document.getElementById('area-sub').textContent = d.areaSub;
+  buildMainLegend(d);
+  const heading = { pollution: 'Air Pollution', education: 'Education', water: 'Water Access', waste: 'Waste Management' };
+  document.getElementById('insights-heading').textContent = 'Key Findings — ' + heading[key];
+  document.getElementById('insights-pills').innerHTML = d.insights.map(i => `<span class="pill">${i}</span>`).join('');
+  const box = document.querySelector('.insights-box');
+  box.style.background = d.insightColor;
+  if (mainChart) mainChart.destroy();
+  if (areaChart) areaChart.destroy();
+  mainChart = makeMainChart(d);
+  areaChart = makeAreaChart(d);
+}
+
+// Init
+const initData = DATASETS.pollution;
+buildMainLegend(initData);
+document.getElementById('insights-pills').innerHTML = initData.insights.map(i => `<span class="pill">${i}</span>`).join('');
+document.querySelector('.insights-box').style.background = initData.insightColor;
+mainChart = makeMainChart(initData);
+areaChart = makeAreaChart(initData);
+</script>
+</body>
+</html>
